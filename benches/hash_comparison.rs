@@ -2,6 +2,7 @@ use blake3::Hasher as Blake3Hasher;
 use divan::Bencher;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 use sha2::Digest;
+use xxhash_rust::xxh3::Xxh3;
 
 fn main() {
     divan::main();
@@ -57,6 +58,28 @@ mod hash_comparison {
                 let mut hasher = Blake3Hasher::new();
                 hasher.update(&data);
                 hasher.finalize()
+            })
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn xxhash64(bencher: Bencher, size: usize) {
+        bencher
+            .with_inputs(|| generate_data(size))
+            .bench_local_values(|data| {
+                let mut hasher = Xxh3::new();
+                hasher.update(&data);
+                hasher.digest()
+            })
+    }
+
+    #[divan::bench(args = SIZES)]
+    fn xxhash128(bencher: Bencher, size: usize) {
+        bencher
+            .with_inputs(|| generate_data(size))
+            .bench_local_values(|data| {
+                let mut hasher = Xxh3::new();
+                hasher.update(&data);
+                hasher.digest128()
             })
     }
 }
