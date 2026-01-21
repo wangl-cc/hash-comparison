@@ -1,5 +1,5 @@
-use divan::Bencher;
-use rand::{Rng, RngCore, SeedableRng};
+use divan::{Bencher, black_box};
+use rand::{RngCore, SeedableRng};
 
 fn main() {
     divan::main();
@@ -9,46 +9,52 @@ fn main() {
 mod u64_generation {
     use super::*;
 
+    fn bench(rng: &mut impl RngCore, acc: &mut u64) {
+        let x = rng.next_u64();
+        *acc ^= x;
+        black_box(*acc);
+    }
+
     #[divan::bench]
     fn small_rng(bencher: Bencher) {
         bencher
-            .with_inputs(|| rand::rngs::SmallRng::seed_from_u64(42))
-            .bench_local_refs(|rng| rng.random::<u64>())
+            .with_inputs(|| (rand::rngs::SmallRng::seed_from_u64(42), 0u64))
+            .bench_local_refs(|(rng, acc)| bench(rng, acc))
     }
 
     #[divan::bench]
     fn pcg64(bencher: Bencher) {
         bencher
-            .with_inputs(|| rand_pcg::Pcg64::seed_from_u64(42))
-            .bench_local_refs(|rng| rng.random::<u64>())
+            .with_inputs(|| (rand_pcg::Pcg64::seed_from_u64(42), 0u64))
+            .bench_local_refs(|(rng, acc)| bench(rng, acc))
     }
 
     #[divan::bench]
     fn pcg64mcg(bencher: Bencher) {
         bencher
-            .with_inputs(|| rand_pcg::Pcg64Mcg::seed_from_u64(42))
-            .bench_local_refs(|rng| rng.random::<u64>())
+            .with_inputs(|| (rand_pcg::Pcg64Mcg::seed_from_u64(42), 0u64))
+            .bench_local_refs(|(rng, acc)| bench(rng, acc))
     }
 
     #[divan::bench]
     fn pcg64dxsm(bencher: Bencher) {
         bencher
-            .with_inputs(|| rand_pcg::Pcg64Dxsm::seed_from_u64(42))
-            .bench_local_refs(|rng| rng.random::<u64>())
+            .with_inputs(|| (rand_pcg::Pcg64Dxsm::seed_from_u64(42), 0u64))
+            .bench_local_refs(|(rng, acc)| bench(rng, acc))
     }
 
     #[divan::bench]
     fn xoshiro256plusplus(bencher: Bencher) {
         bencher
-            .with_inputs(|| rand_xoshiro::Xoshiro256PlusPlus::seed_from_u64(42))
-            .bench_local_refs(|rng| rng.random::<u64>())
+            .with_inputs(|| (rand_xoshiro::Xoshiro256PlusPlus::seed_from_u64(42), 0u64))
+            .bench_local_refs(|(rng, acc)| bench(rng, acc))
     }
 
     #[divan::bench]
     fn xoshiro256starstar(bencher: Bencher) {
         bencher
-            .with_inputs(|| rand_xoshiro::Xoshiro256StarStar::seed_from_u64(42))
-            .bench_local_refs(|rng| rng.random::<u64>())
+            .with_inputs(|| (rand_xoshiro::Xoshiro256StarStar::seed_from_u64(42), 0u64))
+            .bench_local_refs(|(rng, acc)| bench(rng, acc))
     }
 }
 
