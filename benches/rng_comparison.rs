@@ -1,145 +1,168 @@
 use std::hint::black_box;
 
-use divan::Bencher;
+use criterion::{BatchSize, BenchmarkId, Criterion, criterion_group, criterion_main};
 use rand::{RngCore, SeedableRng};
 
-fn main() {
-    divan::main();
+fn bench_u64(rng: &mut impl RngCore, acc: &mut u64) {
+    let x = rng.next_u64();
+    *acc ^= x;
+    black_box(*acc);
 }
 
-#[divan::bench_group(sample_count = 10000)]
-mod u64_generation {
-    use super::*;
+fn u64_generation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("u64_generation");
 
-    fn bench(rng: &mut impl RngCore, acc: &mut u64) {
-        let x = rng.next_u64();
-        *acc ^= x;
-        black_box(*acc);
-    }
+    group.bench_function("small_rng", |b| {
+        b.iter_batched(
+            || (rand::rngs::SmallRng::seed_from_u64(42), 0u64),
+            |(mut rng, mut acc)| bench_u64(&mut rng, &mut acc),
+            BatchSize::LargeInput,
+        )
+    });
 
-    #[divan::bench]
-    fn small_rng(bencher: Bencher) {
-        bencher
-            .with_inputs(|| (rand::rngs::SmallRng::seed_from_u64(42), 0u64))
-            .bench_local_refs(|(rng, acc)| bench(rng, acc))
-    }
+    group.bench_function("pcg64", |b| {
+        b.iter_batched(
+            || (rand_pcg::Pcg64::seed_from_u64(42), 0u64),
+            |(mut rng, mut acc)| bench_u64(&mut rng, &mut acc),
+            BatchSize::LargeInput,
+        )
+    });
 
-    #[divan::bench]
-    fn pcg64(bencher: Bencher) {
-        bencher
-            .with_inputs(|| (rand_pcg::Pcg64::seed_from_u64(42), 0u64))
-            .bench_local_refs(|(rng, acc)| bench(rng, acc))
-    }
+    group.bench_function("pcg64mcg", |b| {
+        b.iter_batched(
+            || (rand_pcg::Pcg64Mcg::seed_from_u64(42), 0u64),
+            |(mut rng, mut acc)| bench_u64(&mut rng, &mut acc),
+            BatchSize::LargeInput,
+        )
+    });
 
-    #[divan::bench]
-    fn pcg64mcg(bencher: Bencher) {
-        bencher
-            .with_inputs(|| (rand_pcg::Pcg64Mcg::seed_from_u64(42), 0u64))
-            .bench_local_refs(|(rng, acc)| bench(rng, acc))
-    }
+    group.bench_function("pcg64dxsm", |b| {
+        b.iter_batched(
+            || (rand_pcg::Pcg64Dxsm::seed_from_u64(42), 0u64),
+            |(mut rng, mut acc)| bench_u64(&mut rng, &mut acc),
+            BatchSize::LargeInput,
+        )
+    });
 
-    #[divan::bench]
-    fn pcg64dxsm(bencher: Bencher) {
-        bencher
-            .with_inputs(|| (rand_pcg::Pcg64Dxsm::seed_from_u64(42), 0u64))
-            .bench_local_refs(|(rng, acc)| bench(rng, acc))
-    }
+    group.bench_function("xoshiro256plusplus", |b| {
+        b.iter_batched(
+            || (rand_xoshiro::Xoshiro256PlusPlus::seed_from_u64(42), 0u64),
+            |(mut rng, mut acc)| bench_u64(&mut rng, &mut acc),
+            BatchSize::LargeInput,
+        )
+    });
 
-    #[divan::bench]
-    fn xoshiro256plusplus(bencher: Bencher) {
-        bencher
-            .with_inputs(|| (rand_xoshiro::Xoshiro256PlusPlus::seed_from_u64(42), 0u64))
-            .bench_local_refs(|(rng, acc)| bench(rng, acc))
-    }
+    group.bench_function("xoshiro256starstar", |b| {
+        b.iter_batched(
+            || (rand_xoshiro::Xoshiro256StarStar::seed_from_u64(42), 0u64),
+            |(mut rng, mut acc)| bench_u64(&mut rng, &mut acc),
+            BatchSize::LargeInput,
+        )
+    });
 
-    #[divan::bench]
-    fn xoshiro256starstar(bencher: Bencher) {
-        bencher
-            .with_inputs(|| (rand_xoshiro::Xoshiro256StarStar::seed_from_u64(42), 0u64))
-            .bench_local_refs(|(rng, acc)| bench(rng, acc))
-    }
+    group.finish();
 }
 
-#[divan::bench_group(sample_count = 100)]
-mod bytes_generation {
-    use super::*;
+/// Sizes of the buffers to generate (bytes)
+const SIZES_BYTES: &[usize] = &[
+    1 << 4,  // 16 B
+    1 << 8,  // 256 B
+    1 << 12, // 4 KiB
+    1 << 16, // 64 KiB
+    1 << 20, // 1 MiB
+];
 
-    /// Buffer sizes to fill (from 16B to 1MiB)
-    const SIZES: &[usize] = &[
-        1 << 4,  // 16 B
-        1 << 8,  // 256 B
-        1 << 12, // 8 KiB
-        1 << 16, // 64 KiB
-        1 << 20, // 1 MiB
-    ];
+fn bytes_generation(c: &mut Criterion) {
+    let mut group = c.benchmark_group("bytes_generation");
 
-    #[divan::bench(args = SIZES)]
-    fn small_rng(bencher: Bencher, size: usize) {
-        bencher
-            .with_inputs(|| (rand::rngs::SmallRng::seed_from_u64(42), vec![0u8; size]))
-            .bench_local_values(|(mut rng, mut buf)| {
-                rng.fill_bytes(&mut buf);
-                buf
-            })
-    }
+    for &size in SIZES_BYTES {
+        group.bench_with_input(BenchmarkId::new("small_rng", size), &size, |b, &size| {
+            b.iter_batched(
+                || (rand::rngs::SmallRng::seed_from_u64(42), vec![0u8; size]),
+                |(mut rng, mut buf)| {
+                    rng.fill_bytes(&mut buf);
+                    black_box(buf);
+                },
+                BatchSize::LargeInput,
+            )
+        });
 
-    #[divan::bench(args = SIZES)]
-    fn pcg64(bencher: Bencher, size: usize) {
-        bencher
-            .with_inputs(|| (rand_pcg::Pcg64::seed_from_u64(42), vec![0u8; size]))
-            .bench_local_values(|(mut rng, mut buf)| {
-                rng.fill_bytes(&mut buf);
-                buf
-            })
-    }
+        group.bench_with_input(BenchmarkId::new("pcg64", size), &size, |b, &size| {
+            b.iter_batched(
+                || (rand_pcg::Pcg64::seed_from_u64(42), vec![0u8; size]),
+                |(mut rng, mut buf)| {
+                    rng.fill_bytes(&mut buf);
+                    black_box(buf);
+                },
+                BatchSize::LargeInput,
+            )
+        });
 
-    #[divan::bench(args = SIZES)]
-    fn pcg64mcg(bencher: Bencher, size: usize) {
-        bencher
-            .with_inputs(|| (rand_pcg::Pcg64Mcg::seed_from_u64(42), vec![0u8; size]))
-            .bench_local_values(|(mut rng, mut buf)| {
-                rng.fill_bytes(&mut buf);
-                buf
-            })
-    }
+        group.bench_with_input(BenchmarkId::new("pcg64mcg", size), &size, |b, &size| {
+            b.iter_batched(
+                || (rand_pcg::Pcg64Mcg::seed_from_u64(42), vec![0u8; size]),
+                |(mut rng, mut buf)| {
+                    rng.fill_bytes(&mut buf);
+                    black_box(buf);
+                },
+                BatchSize::LargeInput,
+            )
+        });
 
-    #[divan::bench(args = SIZES)]
-    fn pcg64dxsm(bencher: Bencher, size: usize) {
-        bencher
-            .with_inputs(|| (rand_pcg::Pcg64Dxsm::seed_from_u64(42), vec![0u8; size]))
-            .bench_local_values(|(mut rng, mut buf)| {
-                rng.fill_bytes(&mut buf);
-                buf
-            })
-    }
+        group.bench_with_input(BenchmarkId::new("pcg64dxsm", size), &size, |b, &size| {
+            b.iter_batched(
+                || (rand_pcg::Pcg64Dxsm::seed_from_u64(42), vec![0u8; size]),
+                |(mut rng, mut buf)| {
+                    rng.fill_bytes(&mut buf);
+                    black_box(buf);
+                },
+                BatchSize::LargeInput,
+            )
+        });
 
-    #[divan::bench(args = SIZES)]
-    fn xoshiro256plusplus(bencher: Bencher, size: usize) {
-        bencher
-            .with_inputs(|| {
-                (
-                    rand_xoshiro::Xoshiro256PlusPlus::seed_from_u64(42),
-                    vec![0u8; size],
+        group.bench_with_input(
+            BenchmarkId::new("xoshiro256plusplus", size),
+            &size,
+            |b, &size| {
+                b.iter_batched(
+                    || {
+                        (
+                            rand_xoshiro::Xoshiro256PlusPlus::seed_from_u64(42),
+                            vec![0u8; size],
+                        )
+                    },
+                    |(mut rng, mut buf)| {
+                        rng.fill_bytes(&mut buf);
+                        black_box(buf);
+                    },
+                    BatchSize::LargeInput,
                 )
-            })
-            .bench_local_values(|(mut rng, mut buf)| {
-                rng.fill_bytes(&mut buf);
-                buf
-            })
+            },
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("xoshiro256starstar", size),
+            &size,
+            |b, &size| {
+                b.iter_batched(
+                    || {
+                        (
+                            rand_xoshiro::Xoshiro256StarStar::seed_from_u64(42),
+                            vec![0u8; size],
+                        )
+                    },
+                    |(mut rng, mut buf)| {
+                        rng.fill_bytes(&mut buf);
+                        black_box(buf);
+                    },
+                    BatchSize::LargeInput,
+                )
+            },
+        );
     }
 
-    #[divan::bench(args = SIZES)]
-    fn xoshiro256starstar(bencher: Bencher, size: usize) {
-        bencher
-            .with_inputs(|| {
-                (
-                    rand_xoshiro::Xoshiro256StarStar::seed_from_u64(42),
-                    vec![0u8; size],
-                )
-            })
-            .bench_local_values(|(mut rng, mut buf)| {
-                rng.fill_bytes(&mut buf);
-                buf
-            })
-    }
+    group.finish();
 }
+
+criterion_group!(benches, u64_generation, bytes_generation);
+criterion_main!(benches);
