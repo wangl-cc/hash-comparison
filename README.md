@@ -14,7 +14,7 @@
 ### Platform
 
 - Zen 5 (x86-64 Linux):
-  - OS: Fedoa 43
+  - OS: Fedora 43
   - Kernel: 6.18.5-200.fc43.x86_64
   - CPU: AMD Ryzen 9 9950X @ 5.76 GHz
   - Memory: Dual-channel DDR5 6000 MT/s
