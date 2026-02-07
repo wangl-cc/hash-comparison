@@ -14,7 +14,10 @@ harness = false
 name = "rng_comparison"
 
 [dependencies]
+blake2 = "0.10"
 blake3 = "1.5"
+digest = "0.10.7"
+gxhash = "3"
 rand = "0.9"
 rand_pcg = "0.9"
 rand_xoshiro = "0.7"

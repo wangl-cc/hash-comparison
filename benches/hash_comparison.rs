@@ -1,10 +1,8 @@
 use std::hint::black_box;
 
-use blake3::Hasher as Blake3Hasher;
 use criterion::{BatchSize, BenchmarkId, Criterion, criterion_group, criterion_main};
+use digest::Digest;
 use rand::{Rng, SeedableRng, rngs::SmallRng};
-use sha2::Digest;
-use xxhash_rust::xxh3::Xxh3;
 
 /// Data sizes (bytes) to test (from 16B to 8MB)
 const SIZES_BYTES: &[usize] = &[
@@ -22,8 +20,8 @@ fn generate_data(size: usize) -> Vec<u8> {
     (0..size).map(|_| rng.random()).collect()
 }
 
-fn hash_comparison(c: &mut Criterion) {
-    let mut group = c.benchmark_group("hash_comparison");
+fn cryptographic_hash(c: &mut Criterion) {
+    let mut group = c.benchmark_group("cryptographic_hash");
 
     for &size in SIZES_BYTES {
         group.bench_with_input(BenchmarkId::new("sha256", size), &size, |b, &size| {
@@ -52,31 +50,20 @@ fn hash_comparison(c: &mut Criterion) {
             b.iter_batched(
                 || generate_data(size),
                 |data| {
-                    let mut hasher = Blake3Hasher::new();
+                    let mut hasher = blake3::Hasher::new();
                     hasher.update(&data);
                     black_box(hasher.finalize());
                 },
                 BatchSize::SmallInput,
             )
         });
-        group.bench_with_input(BenchmarkId::new("xxhash64", size), &size, |b, &size| {
+        group.bench_with_input(BenchmarkId::new("blake2b512", size), &size, |b, &size| {
             b.iter_batched(
                 || generate_data(size),
                 |data| {
-                    let mut hasher = Xxh3::new();
+                    let mut hasher = blake2::Blake2b512::new();
                     hasher.update(&data);
-                    black_box(hasher.digest());
-                },
-                BatchSize::SmallInput,
-            )
-        });
-        group.bench_with_input(BenchmarkId::new("xxhash128", size), &size, |b, &size| {
-            b.iter_batched(
-                || generate_data(size),
-                |data| {
-                    let mut hasher = Xxh3::new();
-                    hasher.update(&data);
-                    black_box(hasher.digest128());
+                    black_box(hasher.finalize());
                 },
                 BatchSize::SmallInput,
             )
@@ -86,5 +73,34 @@ fn hash_comparison(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, hash_comparison);
+fn non_cryptographic_hash(c: &mut Criterion) {
+    let mut group = c.benchmark_group("non_cryptographic_hash");
+
+    for &size in SIZES_BYTES {
+        group.bench_with_input(BenchmarkId::new("xxh3", size), &size, |b, &size| {
+            b.iter_batched(
+                || generate_data(size),
+                |data| {
+                    let mut hasher = xxhash_rust::xxh3::Xxh3::new();
+                    hasher.update(&data);
+                    black_box(hasher.digest128());
+                },
+                BatchSize::SmallInput,
+            )
+        });
+        group.bench_with_input(BenchmarkId::new("gxhash", size), &size, |b, &size| {
+            b.iter_batched(
+                || generate_data(size),
+                |data| {
+                    black_box(gxhash::gxhash128(&data, 0));
+                },
+                BatchSize::SmallInput,
+            )
+        });
+    }
+
+    group.finish();
+}
+
+criterion_group!(benches, non_cryptographic_hash, cryptographic_hash);
 criterion_main!(benches);
