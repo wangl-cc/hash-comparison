@@ -30,7 +30,7 @@ pub fn run_benchmark(scope: Scope, bench_args: &BenchOpts, workspace_root: &Path
 
     cmd.args(&bench_args.bench_extra_args);
 
-    println!("running {:?}", cmd);
+    println!("Running `{:?}`", cmd);
 
     let status = cmd.status()?;
     if !status.success() {
