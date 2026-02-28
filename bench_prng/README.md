@@ -25,18 +25,18 @@ Fixed setup:
 
 ### PCG family
 
-- **[PCG64](https://docs.rs/rand_pcg/latest/rand_pcg/struct.Pcg64.html)**:
+- **[PCG64](https://docs.rs/rand_pcg/latest/rand_pcg/type.Pcg64.html)**:
   balanced baseline in the PCG family.
-- **[PCG64-MCG](https://docs.rs/rand_pcg/latest/rand_pcg/struct.Pcg64Mcg.html)**:
+- **[PCG64-MCG](https://docs.rs/rand_pcg/latest/rand_pcg/type.Pcg64Mcg.html)**:
   multiplicative variant, often faster state transition.
-- **[PCG64DXSM](https://docs.rs/rand_pcg/latest/rand_pcg/struct.Pcg64Dxsm.html)**:
+- **[PCG64DXSM](https://docs.rs/rand_pcg/latest/rand_pcg/type.Pcg64Dxsm.html)**:
   DXSM output variant, commonly used for stronger quality margin.
 
 ### xoshiro family
 
 - **[xoshiro256++](https://docs.rs/rand_xoshiro/latest/rand_xoshiro/struct.Xoshiro256PlusPlus.html)**:
   very fast general-purpose PRNG.
-- **[`xoshiro256**`](https://docs.rs/rand_xoshiro/latest/rand_xoshiro/struct.Xoshiro256StarStar.html)**:
+- **[xoshiro256\*\*](https://docs.rs/rand_xoshiro/latest/rand_xoshiro/struct.Xoshiro256StarStar.html)**:
   another high-throughput variant with a different output scrambler.
 
 ## Run
