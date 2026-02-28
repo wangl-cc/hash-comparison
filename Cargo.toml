@@ -1,28 +1,29 @@
-[package]
-name = "benches"
-version = "0.1.0"
+[workspace]
+resolver = "3"
+members = [
+  "bench_hash",
+  "bench_prng",
+  "xtask",
+]
+
+[workspace.package]
 edition = "2024"
-description = "Benchmarking for common algorithms "
+rust-version = "1.89"
 license = "MIT OR Apache-2.0"
 
-[[bench]]
-harness = false
-name = "hash_comparison"
-
-[[bench]]
-harness = false
-name = "rng_comparison"
-
-[dependencies]
+[workspace.dependencies]
 blake2 = "0.10"
 blake3 = "1.5"
+criterion = "0.8"
 digest = "0.10.7"
 gxhash = "3"
 rand = "0.9"
 rand_pcg = "0.9"
 rand_xoshiro = "0.7"
+rapidhash = "4"
 sha2 = { version = "0.10", features = ["asm"] }
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
 
-[dev-dependencies]
-criterion = "0.8"
+[profile.bench]
+lto = "fat"
+codegen-units = 1
