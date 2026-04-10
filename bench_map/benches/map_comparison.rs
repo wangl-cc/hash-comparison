@@ -7,6 +7,7 @@ use criterion::{
     AxisScale, BenchmarkId, Criterion, PlotConfiguration, Throughput, criterion_group,
     criterion_main,
 };
+use indexmap::IndexMap;
 use rand::{Rng, SeedableRng, rngs::SmallRng, seq::SliceRandom};
 
 /// Collection sizes (number of entries) to benchmark.
@@ -87,6 +88,16 @@ fn bench_insert(c: &mut Criterion) {
                 black_box(m);
             });
         });
+
+        group.bench_with_input(BenchmarkId::new("IndexMap", n), &pairs, |b, pairs| {
+            b.iter(|| {
+                let mut m: IndexMap<u64, u64> = IndexMap::with_capacity(pairs.len());
+                for &(k, val) in pairs {
+                    m.insert(k, val);
+                }
+                black_box(m);
+            });
+        });
     }
 
     group.finish();
@@ -155,6 +166,27 @@ fn bench_lookup_hit(c: &mut Criterion) {
             let keys = lookup_keys.clone();
             group.bench_with_input(
                 BenchmarkId::new("BTreeMap", n),
+                &(map, keys),
+                |b, (map, keys)| {
+                    b.iter(|| {
+                        let mut acc = 0u64;
+                        for &k in keys {
+                            if let Some(&v) = map.get(&k) {
+                                acc ^= v;
+                            }
+                        }
+                        black_box(acc);
+                    });
+                },
+            );
+        }
+
+        // IndexMap
+        {
+            let map: IndexMap<u64, u64> = pairs.iter().copied().collect();
+            let keys = lookup_keys.clone();
+            group.bench_with_input(
+                BenchmarkId::new("IndexMap", n),
                 &(map, keys),
                 |b, (map, keys)| {
                     b.iter(|| {
@@ -244,6 +276,25 @@ fn bench_lookup_miss(c: &mut Criterion) {
                 },
             );
         }
+
+        // IndexMap
+        {
+            let map: IndexMap<u64, u64> = pairs.iter().copied().collect();
+            let keys = lookup_keys.clone();
+            group.bench_with_input(
+                BenchmarkId::new("IndexMap", n),
+                &(map, keys),
+                |b, (map, keys)| {
+                    b.iter(|| {
+                        let mut found = 0u64;
+                        for &k in keys {
+                            found += map.contains_key(&k) as u64;
+                        }
+                        black_box(found);
+                    });
+                },
+            );
+        }
     }
 
     group.finish();
@@ -285,6 +336,17 @@ fn bench_iterate(c: &mut Criterion) {
         {
             let map: BTreeMap<u64, u64> = pairs.iter().copied().collect();
             group.bench_with_input(BenchmarkId::new("BTreeMap", n), &map, |b, map| {
+                b.iter(|| {
+                    let acc: u64 = map.values().fold(0, |a, &v| a ^ v);
+                    black_box(acc);
+                });
+            });
+        }
+
+        // IndexMap
+        {
+            let map: IndexMap<u64, u64> = pairs.iter().copied().collect();
+            group.bench_with_input(BenchmarkId::new("IndexMap", n), &map, |b, map| {
                 b.iter(|| {
                     let acc: u64 = map.values().fold(0, |a, &v| a ^ v);
                     black_box(acc);
@@ -341,6 +403,20 @@ fn str_bench_insert(c: &mut Criterion) {
                 |b, pairs| {
                     b.iter(|| {
                         let mut m: BTreeMap<String, String> = BTreeMap::new();
+                        for (k, val) in pairs {
+                            m.insert(k.clone(), val.clone());
+                        }
+                        black_box(m);
+                    });
+                },
+            );
+
+            group.bench_with_input(
+                BenchmarkId::new(format!("IndexMap@key={key_len}b"), n),
+                &pairs,
+                |b, pairs| {
+                    b.iter(|| {
+                        let mut m: IndexMap<String, String> = IndexMap::with_capacity(pairs.len());
                         for (k, val) in pairs {
                             m.insert(k.clone(), val.clone());
                         }
@@ -434,6 +510,27 @@ fn str_bench_lookup_hit(c: &mut Criterion) {
                     },
                 );
             }
+
+            // IndexMap
+            {
+                let map: IndexMap<String, String> = pairs.iter().cloned().collect();
+                let keys = lookup_keys.clone();
+                group.bench_with_input(
+                    BenchmarkId::new(format!("IndexMap@key={key_len}b"), n),
+                    &(map, keys),
+                    |b, (map, keys)| {
+                        b.iter(|| {
+                            let mut acc = 0usize;
+                            for k in keys {
+                                if let Some(v) = map.get(k) {
+                                    acc ^= v.len();
+                                }
+                            }
+                            black_box(acc);
+                        });
+                    },
+                );
+            }
         }
     }
 
@@ -512,6 +609,25 @@ fn str_bench_lookup_miss(c: &mut Criterion) {
                     },
                 );
             }
+
+            // IndexMap
+            {
+                let map: IndexMap<String, String> = pairs.iter().cloned().collect();
+                let keys = lookup_keys.clone();
+                group.bench_with_input(
+                    BenchmarkId::new(format!("IndexMap@key={key_len}b"), n),
+                    &(map, keys),
+                    |b, (map, keys)| {
+                        b.iter(|| {
+                            let mut found = 0usize;
+                            for k in keys {
+                                found += map.contains_key(k) as usize;
+                            }
+                            black_box(found);
+                        });
+                    },
+                );
+            }
         }
     }
 
@@ -564,6 +680,21 @@ fn str_bench_iterate(c: &mut Criterion) {
                 let map: BTreeMap<String, String> = pairs.iter().cloned().collect();
                 group.bench_with_input(
                     BenchmarkId::new(format!("BTreeMap@key={key_len}b"), n),
+                    &map,
+                    |b, map| {
+                        b.iter(|| {
+                            let acc: usize = map.values().map(|v| v.len()).fold(0, |a, v| a ^ v);
+                            black_box(acc);
+                        });
+                    },
+                );
+            }
+
+            // IndexMap
+            {
+                let map: IndexMap<String, String> = pairs.iter().cloned().collect();
+                group.bench_with_input(
+                    BenchmarkId::new(format!("IndexMap@key={key_len}b"), n),
                     &map,
                     |b, map| {
                         b.iter(|| {

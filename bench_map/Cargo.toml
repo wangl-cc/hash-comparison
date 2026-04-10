@@ -10,4 +10,5 @@ name = "map_comparison"
 
 [dev-dependencies]
 criterion = { workspace = true }
+indexmap = { workspace = true }
 rand = { workspace = true }
