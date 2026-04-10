@@ -19,7 +19,7 @@ fn make_rng() -> SmallRng {
 /// Generate `n` distinct (key, value) pairs with random u64 keys and values.
 fn gen_pairs(n: usize) -> Vec<(u64, u64)> {
     let mut rng = make_rng();
-    let mut pairs: Vec<(u64, u64)> = (0..n as u64).map(|k| (k, rng.random())).collect();
+    let mut pairs: Vec<(u64, u64)> = (0..n as u64).map(|key| (key, rng.random())).collect();
     // Shuffle so insertion order is randomized.
     use rand::seq::SliceRandom;
     pairs.shuffle(&mut rng);
@@ -81,7 +81,7 @@ fn bench_lookup_hit(c: &mut Criterion) {
         // Keys that are guaranteed to be present.
         let lookup_keys: Vec<u64> = {
             let mut rng = make_rng();
-            (0..n).map(|_| pairs[rng.random_range(0..n)].0).collect()
+            (0..n).map(|_idx| pairs[rng.random_range(0..n)].0).collect()
         };
         group.throughput(Throughput::Elements(n as u64));
 
