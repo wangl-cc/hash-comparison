@@ -7,7 +7,7 @@ use criterion::{
     AxisScale, BenchmarkId, Criterion, PlotConfiguration, Throughput, criterion_group,
     criterion_main,
 };
-use rand::{Rng, SeedableRng, rngs::SmallRng};
+use rand::{Rng, SeedableRng, rngs::SmallRng, seq::SliceRandom};
 
 /// Collection sizes (number of entries) to benchmark.
 const SIZES: &[usize] = &[4, 16, 64, 256, 1_024, 4_096];
@@ -24,7 +24,6 @@ fn gen_pairs(n: usize) -> Vec<(u64, u64)> {
     let mut rng = make_rng();
     let mut pairs: Vec<(u64, u64)> = (0..n as u64).map(|key| (key, rng.random())).collect();
     // Shuffle so insertion order is randomized.
-    use rand::seq::SliceRandom;
     pairs.shuffle(&mut rng);
     pairs
 }
@@ -45,7 +44,6 @@ fn gen_string_pairs(n: usize, key_len: usize) -> Vec<(String, String)> {
             (key, val)
         })
         .collect();
-    use rand::seq::SliceRandom;
     pairs.shuffle(&mut rng);
     pairs
 }
