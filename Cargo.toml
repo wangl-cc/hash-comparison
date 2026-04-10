@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
   "bench_hash",
+  "bench_map",
   "bench_prng",
   "xtask",
 ]

@@ -110,6 +110,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bench_map"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "rand",
+]
+
+[[package]]
 name = "bench_prng"
 version = "0.1.0"
 dependencies = [
