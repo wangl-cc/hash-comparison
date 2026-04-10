@@ -81,6 +81,26 @@ impl Scope {
                     src_path: "target/criterion/map_iterate/report/lines_throughput.svg",
                     dest_path: "map_iterate_lines_throughput.svg",
                 },
+                ChartSpec {
+                    title: "String Map Insert",
+                    src_path: "target/criterion/str_map_insert/report/lines_throughput.svg",
+                    dest_path: "str_map_insert_lines_throughput.svg",
+                },
+                ChartSpec {
+                    title: "String Map Lookup (Hit)",
+                    src_path: "target/criterion/str_map_lookup_hit/report/lines_throughput.svg",
+                    dest_path: "str_map_lookup_hit_lines_throughput.svg",
+                },
+                ChartSpec {
+                    title: "String Map Lookup (Miss)",
+                    src_path: "target/criterion/str_map_lookup_miss/report/lines_throughput.svg",
+                    dest_path: "str_map_lookup_miss_lines_throughput.svg",
+                },
+                ChartSpec {
+                    title: "String Map Iterate",
+                    src_path: "target/criterion/str_map_iterate/report/lines_throughput.svg",
+                    dest_path: "str_map_iterate_lines_throughput.svg",
+                },
             ],
             Scope::Prng => &[
                 ChartSpec {
